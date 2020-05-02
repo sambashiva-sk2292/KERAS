@@ -87,8 +87,7 @@ y_test = tf.keras.utils.to_categorical(y_test, num_class)
 #convolution model
 epochs = 20
 convolution_model = keras.Sequential([
-    keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu',
-                input_shape  = (num_obs, img_row, img_row, 1)),
+    keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu'),
     keras.layers.Conv2D(filters = 64, kernel_size = [3,3], activation = 'relu'),
     keras.layers.MaxPool2D(pool_size=(2, 2)),
     keras.layers.Dropout(rate = 0.25),
@@ -99,7 +98,7 @@ convolution_model = keras.Sequential([
 ])
 
 convolution_model.compile(optimizer='adam',
-              loss='tf.keras.losses.categorical_crossentropy',
+              loss='categorical_crossentropy',
               metrics=['accuracy'])
 
 con_results = convolution_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
@@ -115,7 +114,7 @@ deep_model = keras.Sequential([
     ])
 
 deep_model.compile(optimizer='adam',
-                    loss='tf.keras.losses.categorical_crossentropy',
+                    loss='categorical_crossentropy',
                     metrics=['accuracy'])
 
 deep_results = model_one.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
