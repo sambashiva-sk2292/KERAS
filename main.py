@@ -30,7 +30,7 @@ def Baseline(X_mat, y_vec, y_test):
         counts.append(np.sum(column))
     winner = counts.index(max(counts))
     accuracy = np.sum(y_test[:, winner]) / y_test.shape[0]
-    return accuracy
+    return accuracy * 100
 
 ## Load the spam data set and Scale the input matrix
 def Parse(fname):
@@ -76,7 +76,7 @@ convolution_list = list()
 deep_list = list()
 baseline_list = list()
 for i in range(1, 6):
-    foldID = 1
+    foldID = i
     is_test = (fold_vec == foldID)
     is_train = (fold_vec != foldID)
     X_train = X[np.where(is_train)[0]]
@@ -94,7 +94,7 @@ for i in range(1, 6):
     #epochs that results in minimal validation loss.
 
     #convolution model
-    epochs = 5
+    epochs = 20
     convolution_model = keras.Sequential([
         keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu'),
         keras.layers.Conv2D(filters = 64, kernel_size = [3,3], activation = 'relu'),
@@ -176,6 +176,7 @@ for i in range(1, 6):
     deep_list.append(deep_results.history['val_acc'][-1] * 100)
 
     baseline_acc = Baseline(X_train, y_train, y_test)
+    print("baseline_acc = " + str(baseline_acc))
     baseline_list.append(baseline_acc)
 
 # end of loop
