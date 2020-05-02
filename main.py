@@ -58,5 +58,65 @@ y = np.array([temp_ar[:, 0]]).T
 y = y.astype(int)
 num_row = X.shape[0]
 
-## Divide the data into 80% train, 20% test observations (out of all observations in the whole data set).
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+#For 5-fold cross-validation, create a variable fold_vec which randomly assigns each observation to a fold from 1 to 5.
+num_folds = 5
+tempt_array = np.array([1,2,3,4,5])
+fold_vec = np.repeat(tempt_array, num_row/num_folds)
+np.random.shuffle(fold_vec)
+
+#For each fold ID, you should create variables x_train, y_train, x_test, y_test based on fold_vec.
+# for loop over foldID+++++++++++++++++++++++++++
+foldID = 1
+is_test = (fold_vec == foldID)
+is_train = (fold_vec != foldID)
+X_train = X[np.where(is_train)[0]]
+y_train = y[np.where(is_train)[0]]
+X_test = X[np.where(is_test)[0]]
+y_train = y[np.where(is_test)[0]]
+img_row = 16
+img_col = 16
+num_class = 10
+num_obs = X_train.shape[0]
+x_train = tf.reshape(x_train, (num_obs, img_row, img_row, 1))
+x_test = tf.reshape(X_test, (num_obs, img_row, img_row, 1))
+y_train = tf.keras.utils.to_categorical(y_train, num_class)
+y_test = tf.keras.utils.to_categorical(y_test, num_class)
+
+##Compute validation loss for each number of epochs, and define a variable best_epochs which is the number of 
+#epochs that results in minimal validation loss.
+
+#convolution model
+epochs = 20
+convolution_model = keras.Sequential([
+    keras.layers.conv2d(filters = 32, kernel_size = (3,3), activation = 'relu',
+                inputs = (num_obs, img_row, img_row, 1)),
+    keras.layers.conv2d(filters = 64, kernel_size = [3,3], activation = 'relu'),
+    keras.layers.MaxPool2D(pool_size=(2, 2)),
+    keras.layers.Dropout(rate = 0.25),
+    keras.layers.Flatten(),
+    keras.layers.Dense(128, activation='relu'),
+    keras.layers.Dropout(rate = 0.5),
+    keras.layers.Dense(num_class, activation = 'softmax')
+])
+
+convolution_model.compile(optimizer='adam',
+              loss='tf.keras.losses.categorical_crossentropy',
+              metrics=['accuracy'])
+
+con_results = convolution_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
+
+#deep model
+ deep_model = keras.Sequential([
+        keras.layers.Flatten(input_shape = (num_obs, img_row, img_row, 1)),
+        keras.layers.Dense(784, activation='relu'),
+        keras.layers.Dense(270, activation='relu'),
+        keras.layers.Dense(270, activation='relu'),
+        keras.layers.Dense(128, activation='relu'),
+        keras.layers.Dense(num_class, activation='softmax')
+    ])
+
+deep_model.compile(optimizer='adam',
+                    loss='tf.keras.losses.categorical_crossentropy',
+                    metrics=['accuracy'])
+
+deep_results = model_one.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
