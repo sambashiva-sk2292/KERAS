@@ -117,4 +117,4 @@ deep_model.compile(optimizer='adam',
                     loss='categorical_crossentropy',
                     metrics=['accuracy'])
 
-deep_results = model_one.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
+deep_results = deep_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
