@@ -67,106 +67,112 @@ np.random.shuffle(fold_vec)
 
 #For each fold ID, you should create variables x_train, y_train, x_test, y_test based on fold_vec.
 # for loop over foldID+ for foldID in (1:5)
-convolution_list = list()
-deep_list = list()
-foldID = 1
-is_test = (fold_vec == foldID)
-is_train = (fold_vec != foldID)
-X_train = X[np.where(is_train)[0]]
-y_train = y[np.where(is_train)[0]]
-X_test = X[np.where(is_test)[0]]
-y_test = y[np.where(is_test)[0]]
-img_row = 16
-img_col = 16
-num_class = 10
-num_obs = X_train.shape[0]
-y_train = tf.keras.utils.to_categorical(y_train, num_class)
-y_test = tf.keras.utils.to_categorical(y_test, num_class)
+try:
+    for i in range(1, 6):
+        convolution_list = list()
+        deep_list = list()
+        foldID = 1
+        is_test = (fold_vec == foldID)
+        is_train = (fold_vec != foldID)
+        X_train = X[np.where(is_train)[0]]
+        y_train = y[np.where(is_train)[0]]
+        X_test = X[np.where(is_test)[0]]
+        y_test = y[np.where(is_test)[0]]
+        img_row = 16
+        img_col = 16
+        num_class = 10
+        num_obs = X_train.shape[0]
+        y_train = tf.keras.utils.to_categorical(y_train, num_class)
+        y_test = tf.keras.utils.to_categorical(y_test, num_class)
 
-##Compute validation loss for each number of epochs, and define a variable best_epochs which is the number of 
-#epochs that results in minimal validation loss.
+        ##Compute validation loss for each number of epochs, and define a variable best_epochs which is the number of 
+        #epochs that results in minimal validation loss.
 
-#convolution model
-epochs = 5
-convolution_model = keras.Sequential([
-    keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu'),
-    keras.layers.Conv2D(filters = 64, kernel_size = [3,3], activation = 'relu'),
-    keras.layers.MaxPool2D(pool_size=(2, 2)),
-    keras.layers.Dropout(rate = 0.25),
-    keras.layers.Flatten(),
-    keras.layers.Dense(128, activation='relu'),
-    keras.layers.Dropout(rate = 0.5),
-    keras.layers.Dense(num_class, activation = 'softmax')
-])
+        #convolution model
+        epochs = 5
+        convolution_model = keras.Sequential([
+            keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu'),
+            keras.layers.Conv2D(filters = 64, kernel_size = [3,3], activation = 'relu'),
+            keras.layers.MaxPool2D(pool_size=(2, 2)),
+            keras.layers.Dropout(rate = 0.25),
+            keras.layers.Flatten(),
+            keras.layers.Dense(128, activation='relu'),
+            keras.layers.Dropout(rate = 0.5),
+            keras.layers.Dense(num_class, activation = 'softmax')
+        ])
 
-convolution_model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
+        convolution_model.compile(optimizer='adam',
+                      loss='categorical_crossentropy',
+                      metrics=['accuracy'])
 
-con_results = convolution_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
+        con_results = convolution_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
 
-#deep model
-deep_model = keras.Sequential([
-        keras.layers.Flatten(),
-        keras.layers.Dense(784, activation='relu'),
-        keras.layers.Dense(270, activation='relu'),
-        keras.layers.Dense(270, activation='relu'),
-        keras.layers.Dense(128, activation='relu'),
-        keras.layers.Dense(num_class, activation='softmax')
-    ])
+        #deep model
+        deep_model = keras.Sequential([
+                keras.layers.Flatten(),
+                keras.layers.Dense(784, activation='relu'),
+                keras.layers.Dense(270, activation='relu'),
+                keras.layers.Dense(270, activation='relu'),
+                keras.layers.Dense(128, activation='relu'),
+                keras.layers.Dense(num_class, activation='softmax')
+            ])
 
-deep_model.compile(optimizer='adam',
-                    loss='categorical_crossentropy',
-                    metrics=['accuracy'])
+        deep_model.compile(optimizer='adam',
+                            loss='categorical_crossentropy',
+                            metrics=['accuracy'])
 
-deep_results = deep_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
+        deep_results = deep_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
 
-## Re-fit the model on the entire train set using best_epochs and validation_split=0.
+        ## Re-fit the model on the entire train set using best_epochs and validation_split=0.
 
-# choose the min validation loss and tran loss
-con_min_val_loss = min(con_results.history['val_loss'])
-deep_min_val_loss = min(deep_results.history['val_loss'])
+        # choose the min validation loss and tran loss
+        con_min_val_loss = min(con_results.history['val_loss'])
+        deep_min_val_loss = min(deep_results.history['val_loss'])
 
-con_best_epoch = con_results.history['val_loss'].index(con_min_val_loss)
-deep_best_epoch = deep_results.history['val_loss'].index(deep_min_val_loss)
+        con_best_epoch = con_results.history['val_loss'].index(con_min_val_loss)
+        deep_best_epoch = deep_results.history['val_loss'].index(deep_min_val_loss)
 
-#retrain convolution model
-convolution_model = keras.Sequential([
-    keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu'),
-    keras.layers.Conv2D(filters = 64, kernel_size = [3,3], activation = 'relu'),
-    keras.layers.MaxPool2D(pool_size=(2, 2)),
-    keras.layers.Dropout(rate = 0.25),
-    keras.layers.Flatten(),
-    keras.layers.Dense(128, activation='relu'),
-    keras.layers.Dropout(rate = 0.5),
-    keras.layers.Dense(num_class, activation = 'softmax')
-])
+        #retrain convolution model
+        convolution_model = keras.Sequential([
+            keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu'),
+            keras.layers.Conv2D(filters = 64, kernel_size = [3,3], activation = 'relu'),
+            keras.layers.MaxPool2D(pool_size=(2, 2)),
+            keras.layers.Dropout(rate = 0.25),
+            keras.layers.Flatten(),
+            keras.layers.Dense(128, activation='relu'),
+            keras.layers.Dropout(rate = 0.5),
+            keras.layers.Dense(num_class, activation = 'softmax')
+        ])
 
-convolution_model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
+        convolution_model.compile(optimizer='adam',
+                      loss='categorical_crossentropy',
+                      metrics=['accuracy'])
 
-con_results = convolution_model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=con_best_epoch)
+        con_results = convolution_model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=con_best_epoch)
 
-convolution_list.append(con_results.history['val_acc'][-1] * 100)
+        convolution_list.append(con_results.history['val_acc'][-1] * 100)
 
-#retrain deep model 
-deep_model = keras.Sequential([
-        keras.layers.Flatten(),
-        keras.layers.Dense(784, activation='relu'),
-        keras.layers.Dense(270, activation='relu'),
-        keras.layers.Dense(270, activation='relu'),
-        keras.layers.Dense(128, activation='relu'),
-        keras.layers.Dense(num_class, activation='softmax')
-    ])
+        #retrain deep model 
+        deep_model = keras.Sequential([
+                keras.layers.Flatten(),
+                keras.layers.Dense(784, activation='relu'),
+                keras.layers.Dense(270, activation='relu'),
+                keras.layers.Dense(270, activation='relu'),
+                keras.layers.Dense(128, activation='relu'),
+                keras.layers.Dense(num_class, activation='softmax')
+            ])
 
-deep_model.compile(optimizer='adam',
-                    loss='categorical_crossentropy',
-                    metrics=['accuracy'])
+        deep_model.compile(optimizer='adam',
+                            loss='categorical_crossentropy',
+                            metrics=['accuracy'])
 
-deep_results = deep_model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=deep_best_epoch)
+        deep_results = deep_model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=deep_best_epoch)
 
-deep_list.append(deep_results.history['val_acc'][-1] * 100)
+        deep_list.append(deep_results.history['val_acc'][-1] * 100)
 
-print(convolution_list)
-print(deep_list)
+    # end of loop
+
+    print(convolution_list)
+    print(deep_list)
+except:
+    pdb.set_trace()
