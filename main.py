@@ -23,20 +23,25 @@ from sklearn.model_selection import train_test_split
 figure(num=None, figsize=(30, 8), dpi=80, facecolor='w', edgecolor='k')
 matplotlib.rc('font', size=30)
 
-def Baseline(X_mat, y_vec, X_new):
-    pred_new = np.zeros((X_new.shape[0],))
-    if (y_vec == 1).sum() > (y_vec.shape[0] / 2):
-        pred_new = np.where(pred_new == 0, 1, pred_new)
-    return pred_new
+def Baseline(X_mat, y_vec, y_test):
+    counts = list()
+    for i in range(10):
+        column = y_vec[:, i]
+        counts.append(np.sum(column))
+    winner = counts.index(max(counts))
+    accuracy = np.sum(y_test[:, winner]) / y_test.shape[0]
+    return accuracy
 
 ## Load the spam data set and Scale the input matrix
 def Parse(fname):
     all_rows = []
     with open(fname) as fp:
+        count = 0
         for line in fp:
             line = line.strip()
             row = line.split(' ')
             all_rows.append(row)
+            count += 1
     temp_ar = np.array(all_rows, dtype=float)
     temp_ar = temp_ar.astype(float)
     for col in range(1, temp_ar.shape[1]): # for all but last column (output)
@@ -67,112 +72,134 @@ np.random.shuffle(fold_vec)
 
 #For each fold ID, you should create variables x_train, y_train, x_test, y_test based on fold_vec.
 # for loop over foldID+ for foldID in (1:5)
-try:
-    for i in range(1, 6):
-        convolution_list = list()
-        deep_list = list()
-        foldID = 1
-        is_test = (fold_vec == foldID)
-        is_train = (fold_vec != foldID)
-        X_train = X[np.where(is_train)[0]]
-        y_train = y[np.where(is_train)[0]]
-        X_test = X[np.where(is_test)[0]]
-        y_test = y[np.where(is_test)[0]]
-        img_row = 16
-        img_col = 16
-        num_class = 10
-        num_obs = X_train.shape[0]
-        y_train = tf.keras.utils.to_categorical(y_train, num_class)
-        y_test = tf.keras.utils.to_categorical(y_test, num_class)
+convolution_list = list()
+deep_list = list()
+baseline_list = list()
+for i in range(1, 6):
+    foldID = 1
+    is_test = (fold_vec == foldID)
+    is_train = (fold_vec != foldID)
+    X_train = X[np.where(is_train)[0]]
+    y_train = y[np.where(is_train)[0]]
+    X_test = X[np.where(is_test)[0]]
+    y_test = y[np.where(is_test)[0]]
+    img_row = 16
+    img_col = 16
+    num_class = 10
+    num_obs = X_train.shape[0]
+    y_train = tf.keras.utils.to_categorical(y_train, num_class)
+    y_test = tf.keras.utils.to_categorical(y_test, num_class)
 
-        ##Compute validation loss for each number of epochs, and define a variable best_epochs which is the number of 
-        #epochs that results in minimal validation loss.
+    ##Compute validation loss for each number of epochs, and define a variable best_epochs which is the number of 
+    #epochs that results in minimal validation loss.
 
-        #convolution model
-        epochs = 5
-        convolution_model = keras.Sequential([
-            keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu'),
-            keras.layers.Conv2D(filters = 64, kernel_size = [3,3], activation = 'relu'),
-            keras.layers.MaxPool2D(pool_size=(2, 2)),
-            keras.layers.Dropout(rate = 0.25),
+    #convolution model
+    epochs = 5
+    convolution_model = keras.Sequential([
+        keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu'),
+        keras.layers.Conv2D(filters = 64, kernel_size = [3,3], activation = 'relu'),
+        keras.layers.MaxPool2D(pool_size=(2, 2)),
+        keras.layers.Dropout(rate = 0.25),
+        keras.layers.Flatten(),
+        keras.layers.Dense(128, activation='relu'),
+        keras.layers.Dropout(rate = 0.5),
+        keras.layers.Dense(num_class, activation = 'softmax')
+    ])
+
+    convolution_model.compile(optimizer='adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    con_results = convolution_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
+
+    #deep model
+    deep_model = keras.Sequential([
             keras.layers.Flatten(),
+            keras.layers.Dense(784, activation='relu'),
+            keras.layers.Dense(270, activation='relu'),
+            keras.layers.Dense(270, activation='relu'),
             keras.layers.Dense(128, activation='relu'),
-            keras.layers.Dropout(rate = 0.5),
-            keras.layers.Dense(num_class, activation = 'softmax')
+            keras.layers.Dense(num_class, activation='softmax')
         ])
 
-        convolution_model.compile(optimizer='adam',
-                      loss='categorical_crossentropy',
-                      metrics=['accuracy'])
+    deep_model.compile(optimizer='adam',
+                        loss='categorical_crossentropy',
+                        metrics=['accuracy'])
 
-        con_results = convolution_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
+    deep_results = deep_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
 
-        #deep model
-        deep_model = keras.Sequential([
-                keras.layers.Flatten(),
-                keras.layers.Dense(784, activation='relu'),
-                keras.layers.Dense(270, activation='relu'),
-                keras.layers.Dense(270, activation='relu'),
-                keras.layers.Dense(128, activation='relu'),
-                keras.layers.Dense(num_class, activation='softmax')
-            ])
+    ## Re-fit the model on the entire train set using best_epochs and validation_split=0.
 
-        deep_model.compile(optimizer='adam',
-                            loss='categorical_crossentropy',
-                            metrics=['accuracy'])
+    # choose the min validation loss and tran loss
+    con_min_val_loss = min(con_results.history['val_loss'])
+    deep_min_val_loss = min(deep_results.history['val_loss'])
 
-        deep_results = deep_model.fit(X_train, y_train, validation_split = 0.2, epochs=epochs)
+    con_best_epoch = con_results.history['val_loss'].index(con_min_val_loss) + 1
+    deep_best_epoch = deep_results.history['val_loss'].index(deep_min_val_loss) + 1
 
-        ## Re-fit the model on the entire train set using best_epochs and validation_split=0.
+    #retrain convolution model
+    convolution_model = keras.Sequential([
+        keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu'),
+        keras.layers.Conv2D(filters = 64, kernel_size = [3,3], activation = 'relu'),
+        keras.layers.MaxPool2D(pool_size=(2, 2)),
+        keras.layers.Dropout(rate = 0.25),
+        keras.layers.Flatten(),
+        keras.layers.Dense(128, activation='relu'),
+        keras.layers.Dropout(rate = 0.5),
+        keras.layers.Dense(num_class, activation = 'softmax')
+    ])
 
-        # choose the min validation loss and tran loss
-        con_min_val_loss = min(con_results.history['val_loss'])
-        deep_min_val_loss = min(deep_results.history['val_loss'])
+    convolution_model.compile(optimizer='adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
 
-        con_best_epoch = con_results.history['val_loss'].index(con_min_val_loss)
-        deep_best_epoch = deep_results.history['val_loss'].index(deep_min_val_loss)
+    con_results = convolution_model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=con_best_epoch)
 
-        #retrain convolution model
-        convolution_model = keras.Sequential([
-            keras.layers.Conv2D(filters = 32, kernel_size = (3,3), activation = 'relu'),
-            keras.layers.Conv2D(filters = 64, kernel_size = [3,3], activation = 'relu'),
-            keras.layers.MaxPool2D(pool_size=(2, 2)),
-            keras.layers.Dropout(rate = 0.25),
+    convolution_list.append(con_results.history['val_acc'][-1] * 100)
+
+    #retrain deep model 
+    deep_model = keras.Sequential([
             keras.layers.Flatten(),
+            keras.layers.Dense(784, activation='relu'),
+            keras.layers.Dense(270, activation='relu'),
+            keras.layers.Dense(270, activation='relu'),
             keras.layers.Dense(128, activation='relu'),
-            keras.layers.Dropout(rate = 0.5),
-            keras.layers.Dense(num_class, activation = 'softmax')
+            keras.layers.Dense(num_class, activation='softmax')
         ])
 
-        convolution_model.compile(optimizer='adam',
-                      loss='categorical_crossentropy',
-                      metrics=['accuracy'])
+    deep_model.compile(optimizer='adam',
+                        loss='categorical_crossentropy',
+                        metrics=['accuracy'])
 
-        con_results = convolution_model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=con_best_epoch)
+    deep_results = deep_model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=deep_best_epoch)
 
-        convolution_list.append(con_results.history['val_acc'][-1] * 100)
+    deep_list.append(deep_results.history['val_acc'][-1] * 100)
 
-        #retrain deep model 
-        deep_model = keras.Sequential([
-                keras.layers.Flatten(),
-                keras.layers.Dense(784, activation='relu'),
-                keras.layers.Dense(270, activation='relu'),
-                keras.layers.Dense(270, activation='relu'),
-                keras.layers.Dense(128, activation='relu'),
-                keras.layers.Dense(num_class, activation='softmax')
-            ])
+    baseline_acc = Baseline(X_train, y_train, y_test)
+    baseline_list.append(baseline_acc)
 
-        deep_model.compile(optimizer='adam',
-                            loss='categorical_crossentropy',
-                            metrics=['accuracy'])
+# end of loop
 
-        deep_results = deep_model.fit(X_train, y_train, validation_data = (X_test, y_test), epochs=deep_best_epoch)
+print(convolution_list)
+print(deep_list)
+print(baseline_list)
 
-        deep_list.append(deep_results.history['val_acc'][-1] * 100)
+auc = dict()
+auc['convolution'] = convolution_list
+auc['deep'] = deep_list
+auc['baseline'] = baseline_list
 
-    # end of loop
-
-    print(convolution_list)
-    print(deep_list)
-except:
-    pdb.set_trace()
+plt.xlabel("area")
+plt.ylabel("algorithm")
+for algorithm in auc:
+    for value in auc[algorithm]:
+        my_color = None
+        if(algorithm == 'baseline'):
+            my_color = 'black'
+        elif(algorithm == 'convolution'):
+            my_color = 'red'
+        elif(algorithm == 'deep'):
+            my_color = 'blue'
+        plt.scatter(value, algorithm, color=my_color)
+plt.tight_layout()
+plt.savefig("auc_plot.png")
